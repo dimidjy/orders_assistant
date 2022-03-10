@@ -1,0 +1,8 @@
+name: Orders assistant
+description: Orders assistant for Drupal Commerce.
+core_version_requirement: ^8 || ^9
+type: module
+dependencies:
+  - commerce:commerce
+  - commerce:commerce_order
+  - commerce:commerce_product

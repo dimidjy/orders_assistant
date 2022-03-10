@@ -1,0 +1,4 @@
+services:
+  orders_assistant:
+    class: Drupal\orders_assistant\OrdersAssistantService
+    arguments: ['@entity_type.manager']
