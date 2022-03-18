@@ -13,7 +13,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  *
  * @package Drupal\orders_assistant.
  */
-class OrdersAssistantService {
+class OrderAssistantService {
 
   /**
    * Entity type manager.
@@ -63,8 +63,8 @@ class OrdersAssistantService {
 
     $orders_query = $order_storage->getQuery();
     $orders_query->condition('state', 'completed')
-      ->condition('changed', $from->getTimestamp(), '>=')
-      ->condition('changed', $to->getTimestamp(), '<=')
+      ->condition('completed', $from->getTimestamp(), '>=')
+      ->condition('completed', $to->getTimestamp(), '<=')
       ->accessCheck(FALSE);
 
     if ($uid) {
@@ -92,8 +92,8 @@ class OrdersAssistantService {
 
     $query = $commerce_order_storage->getAggregateQuery()
       ->condition('state', 'completed')
-      ->condition('changed', $from->getTimestamp(), '>=')
-      ->condition('changed', $to->getTimestamp(), '<=')
+      ->condition('completed', $from->getTimestamp(), '>=')
+      ->condition('completed', $to->getTimestamp(), '<=')
       ->condition('total_price__currency_code', $currency_code)
       ->condition('total_price__number', '', '!=')
       ->aggregate('total_price__number', 'avg')
@@ -106,7 +106,7 @@ class OrdersAssistantService {
     $result = $query->execute();
 
     if (!empty($result[0]['total_price__number_avg'])) {
-      $total_price_value = $result[0]['total_price__number_avg'];
+      $total_price_value = round($result[0]['total_price__number_avg'], 2);
     }
 
     $total_price = Price::fromArray([
@@ -121,14 +121,12 @@ class OrdersAssistantService {
    * {@inheritdoc}
    */
   public function getMostPurchasedEntity(DrupalDateTime $from, DrupalDateTime $to): ?ProductVariation {
-    $product_variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
-
     $query = $this->database->select('commerce_order_item', 'coi');
 
     $query->leftJoin('commerce_order', 'co', 'coi.order_id = co.order_id');
 
-    $query->condition('co.changed', $from->getTimestamp(), '>=');
-    $query->condition('co.changed', $to->getTimestamp(), '<=');
+    $query->condition('co.completed', $from->getTimestamp(), '>=');
+    $query->condition('co.completed', $to->getTimestamp(), '<=');
     $query->condition('co.state', 'completed');
 
     $query->addField('coi', 'purchased_entity');
@@ -142,7 +140,9 @@ class OrdersAssistantService {
     $result = $query->execute()->fetchCol();
 
     if (!empty($result)) {
+      $product_variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
       $purchased_entity_id = array_shift($result);
+
       return $product_variation_storage->load($purchased_entity_id);
     }
 
